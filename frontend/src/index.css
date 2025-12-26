@@ -1,0 +1,6 @@
+@import "tailwindcss";
+
+::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}
