@@ -2,6 +2,7 @@ package com.vouchervault.backend.service;
 
 import com.vouchervault.backend.model.Coupon;
 import com.vouchervault.backend.repository.CouponRepository;
+import com.vouchervault.backend.utils.AppConstants;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -22,7 +23,7 @@ public class CleanupService {
     @Scheduled(cron = "0 0 3 * * *")
     @Transactional
     public void purgeOldDeletedCoupons() {
-        log.info("Starting cleanup of old deleted coupons...");
+        log.info(AppConstants.CLEANUP_START);
 
         LocalDateTime threshold = LocalDateTime.now().minusDays(30);
         List<Coupon> softDeletedCoupons = couponRepository.findByDeletedAtIsNotNull();
@@ -35,6 +36,6 @@ public class CleanupService {
             }
         }
 
-        log.info("Cleanup finished. Purged {} coupons older than 30 days.", count);
+        log.info(AppConstants.CLEANUP_FINISH, count);
     }
 }

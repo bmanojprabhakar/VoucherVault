@@ -1,28 +1,46 @@
 package com.vouchervault.backend.controller;
 
-import com.vouchervault.backend.service.GoogleAuthService;
+import com.vouchervault.backend.dto.ApiResponseDto;
+import com.vouchervault.backend.security.auth.AuthStrategyFactory;
+import com.vouchervault.backend.utils.AppConstants;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping(AppConstants.API_V1_AUTH)
 @RequiredArgsConstructor
+@Slf4j
+@Tag(name = AppConstants.SWAGGER_AUTH_TAG, description = AppConstants.SWAGGER_AUTH_DESC)
 public class AuthController {
 
-    private final GoogleAuthService googleAuthService;
+    private final AuthStrategyFactory authStrategyFactory;
 
-    @PostMapping("/google")
-    public ResponseEntity<?> googleLogin(@RequestBody Map<String, String> payload) {
-        try {
-            String code = payload.get("code");
-            String token = googleAuthService.authenticateGoogle(code);
-            return ResponseEntity.ok(Map.of("token", token));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    @PostMapping("/{provider}")
+    @Operation(summary = "Authenticate user", description = "Authenticates user using social login provider and returns a JWT token")
+    public ResponseEntity<ApiResponseDto<Map<String, String>>> authenticate(
+            @Parameter(description = "Social login provider (e.g., google, facebook, github)") @PathVariable String provider,
+            @RequestBody Map<String, String> payload) {
+        log.debug(AppConstants.LOG_ENTRY, "authenticate", provider);
+        String code = payload.get(AppConstants.GOOGLE_CODE_KEY);
+        String token = authStrategyFactory.getStrategy(provider).authenticate(code);
+
+        ApiResponseDto<Map<String, String>> response = ApiResponseDto.<Map<String, String>>builder()
+                .status("SUCCESS")
+                .message(AppConstants.AUTH_SUCCESS)
+                .data(Map.of(AppConstants.GOOGLE_TOKEN, token))
+                .timestamp(LocalDateTime.now())
+                .build();
+
+        log.info(AppConstants.LOG_INFO, "User authenticated via " + provider);
+        log.debug(AppConstants.LOG_EXIT, "authenticate");
+        return ResponseEntity.ok(response);
     }
 }
